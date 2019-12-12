@@ -5,7 +5,7 @@ import (
 
 	v0 "github.com/carbonic-app/apis/pkg/api/v0"
 	"github.com/carbonic-app/apis/pkg/service/v0/account/password"
-	"github.com/carbonic-app/apis/pkg/service/v0/common"
+	"github.com/carbonic-app/apis/pkg/service/v0/common/auth"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -17,14 +17,14 @@ const (
 )
 
 type accountServiceServer struct {
-	db     *gorm.DB
-	hasher password.Hasher
-	auth   common.Auth
+	db      *gorm.DB
+	hasher  password.Hasher
+	session auth.Session
 }
 
 // NewAccountServiceServer creates an Account Service
-func NewAccountServiceServer(db *gorm.DB, h password.Hasher, a common.Auth) *accountServiceServer {
-	return &accountServiceServer{db: db, hasher: h, auth: a}
+func NewAccountServiceServer(db *gorm.DB, h password.Hasher, s auth.Session) *accountServiceServer {
+	return &accountServiceServer{db: db, hasher: h, session: s}
 }
 
 func (s *accountServiceServer) checkAPI(api string) error {
@@ -55,7 +55,7 @@ func (s *accountServiceServer) Create(ctx context.Context, req *v0.CreateRequest
 		return nil, err
 	}
 
-	t := v0.Token{Data: s.auth.GenerateToken(user.ID)}
+	t := v0.Token{Data: s.session.GenerateToken(user.ID)}
 	return &v0.TokenResponse{Token: &t}, nil
 }
 
@@ -74,7 +74,7 @@ func (s *accountServiceServer) Login(ctx context.Context, req *v0.LoginRequest) 
 
 	h := s.hasher.HashPassword(req.Password)
 	if h == user.PasswordHash {
-		token = s.auth.GenerateToken(user.ID)
+		token = s.session.GenerateToken(user.ID)
 	} else {
 		return nil, status.Error(codes.PermissionDenied, "Invalid Password")
 	}

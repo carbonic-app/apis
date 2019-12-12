@@ -9,6 +9,7 @@ import (
 	v0 "github.com/carbonic-app/apis/pkg/api/v0"
 	"github.com/carbonic-app/apis/pkg/service/v0/account"
 	"github.com/carbonic-app/apis/pkg/service/v0/account/password"
+	"github.com/carbonic-app/apis/pkg/service/v0/common/auth"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"google.golang.org/grpc"
@@ -50,7 +51,8 @@ func RunServer() error {
 	defer db.Close()
 
 	hasher := password.NewPlaintextHasher()
-	v0API := account.NewAccountServiceServer(db, hasher, nil)
+	session := auth.NewInMemorySession()
+	v0API := account.NewAccountServiceServer(db, hasher, session)
 
 	v0.RegisterAccountServiceServer(s, v0API)
 	return s.Serve(lis)
