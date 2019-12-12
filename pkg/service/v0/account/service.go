@@ -2,9 +2,9 @@ package account
 
 import (
 	"context"
-	"fmt"
 
 	v0 "github.com/carbonic-app/apis/pkg/api/v0"
+	"github.com/carbonic-app/apis/pkg/service/v0/account/password"
 	"github.com/carbonic-app/apis/pkg/service/v0/common"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc/codes"
@@ -17,9 +17,9 @@ const (
 )
 
 type accountServiceServer struct {
-	db   *gorm.DB
-	app  internal
-	auth common.Auth
+	db     *gorm.DB
+	hasher password.Hasher
+	auth   common.Auth
 }
 
 type internal interface {
@@ -27,8 +27,8 @@ type internal interface {
 }
 
 // NewAccountServiceServer creates an Account Service
-func NewAccountServiceServer(db *gorm.DB, app internal, auth common.Auth) *accountServiceServer {
-	return &accountServiceServer{db: db}
+func NewAccountServiceServer(db *gorm.DB, h password.Hasher, a common.Auth) *accountServiceServer {
+	return &accountServiceServer{db: db, hasher: h, auth: a}
 }
 
 func (s *accountServiceServer) checkAPI(api string) error {
@@ -52,13 +52,35 @@ func (s *accountServiceServer) Create(ctx context.Context, req *v0.CreateRequest
 		return nil, err
 	}
 
-	// TODO: Add a Password hash function and
-	user := User{Username: req.Username, PasswordHash: req.Password}
+	h := s.hasher.HashPassword(req.Password)
+	user := User{Username: req.Username, PasswordHash: h}
+
 	if err := s.db.Create(&user).Error; err != nil {
 		return nil, err
 	}
 
-	// TODO: Add actual JWT library to serialize tokens
-	t := v0.Token{Data: fmt.Sprint(user.ID)}
-	return &v0.TokenResponse{Api: apiVersion, Token: &t}, nil
+	t := v0.Token{Data: s.auth.GenerateToken(user.ID)}
+	return &v0.TokenResponse{Token: &t}, nil
+}
+
+// Login tests an account
+func (s *accountServiceServer) Login(ctx context.Context, req *v0.LoginRequest) (*v0.TokenResponse, error) {
+	if err := s.checkAPI(req.Api); err != nil {
+		return nil, err
+	}
+
+	var user User
+	var token string
+
+	if err := s.db.Where(&User{Username: req.Username}).First(&user).Error; err != nil {
+		return nil, err
+	}
+
+	h := s.hasher.HashPassword(req.Password)
+	if h == user.PasswordHash {
+		token = s.auth.GenerateToken(user.ID)
+	} else {
+		return nil, status.Error(codes.PermissionDenied, "Invalid Password")
+	}
+	return &v0.TokenResponse{Token: &v0.Token{Data: token}}, nil
 }

@@ -1,0 +1,12 @@
+syntax = "proto3";
+package v0;
+
+//import "google/protobuf/timestamp.proto";
+
+// Token represents a user logged into the system
+message Token {
+    // Token body
+    string data = 1;
+    // Date and time of token expiration
+    //google.protobuf.Timestamp expiration = 2;
+}
