@@ -10,6 +10,7 @@ import (
 	"github.com/carbonic-app/apis/pkg/service/v0/account"
 	"github.com/carbonic-app/apis/pkg/service/v0/account/password"
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"google.golang.org/grpc"
 )
 
