@@ -1,0 +1,50 @@
+syntax = "proto3";
+package v0;
+
+//import "google/protobuf/timestamp.proto";
+
+// Token represents a user logged into the system
+message Token {
+    // Token body
+    string data = 1;
+    // Date and time of token expiration
+    //google.protobuf.Timestamp expiration = 2;
+}
+
+// TokenResponse contains a token for the client to use
+message TokenResponse {
+    // Explicit API Version
+    string api = 1;
+
+    // Login Token
+    Token token = 2;
+}
+
+// CreateRequest contains account creation credentials
+message CreateRequest {
+    // Explicit API Version
+    string api = 1;
+
+    // Username
+    string username = 2;
+    string password = 3;
+}
+
+// LoginRequest contains a username and password
+message LoginRequest {
+    // Explicit API Version
+    string api = 1;
+
+    // Login Credentials
+    string username = 2;
+    string password = 3;
+}
+
+
+// AccountService handles account login and session management
+service AccountService {
+    // Creates an account and generates a session token
+    rpc Create(CreateRequest) returns (TokenResponse);
+    // Login generates a session token
+    rpc Login(LoginRequest) returns (TokenResponse);
+}
