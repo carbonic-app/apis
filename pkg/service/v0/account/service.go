@@ -2,8 +2,11 @@ package account
 
 import (
 	"context"
-	"database/sql"
+	"fmt"
 
+	v0 "github.com/carbonic/apis/pkg/api/v0"
+	"github.com/carbonic/apis/pkg/service/v0/common"
+	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -14,11 +17,17 @@ const (
 )
 
 type accountServiceServer struct {
-	db *sql.DB
+	db   *gorm.DB
+	app  internal
+	auth common.Auth
+}
+
+type internal interface {
+	HashPassword(string) string
 }
 
 // NewAccountServiceServer creates an Account Service
-func NewAccountServiceServer(db *sql.DB) *accountServiceServer {
+func NewAccountServiceServer(db *gorm.DB, app internal, auth common.Auth) *accountServiceServer {
 	return &accountServiceServer{db: db}
 }
 
@@ -37,13 +46,19 @@ func (s *accountServiceServer) checkAPI(api string) error {
 	return nil
 }
 
-// connect returns SQL database connection from the pool
-func (s *accountServiceServer) connect(ctx context.Context) (*sql.Conn, error) {
-	c, err := s.db.Conn(ctx)
-	if err != nil {
-		return nil, status.Error(codes.Unknown, "Failed to connect to to database-> "+err.Error())
-	}
-	return c, nil
-}
-
 // Create builds an account and returns it
+func (s *accountServiceServer) Create(ctx context.Context, req *v0.CreateRequest) (*v0.TokenResponse, error) {
+	if err := s.checkAPI(req.Api); err != nil {
+		return nil, err
+	}
+
+	// TODO: Add a Password hash function and
+	user := User{Username: req.Username, PasswordHash: req.Password}
+	if err := s.db.Create(&user).Error; err != nil {
+		return nil, err
+	}
+
+	// TODO: Add actual JWT library to serialize tokens
+	t := v0.Token{Data: fmt.Sprint(user.ID)}
+	return &v0.TokenResponse{Api: apiVersion, Token: &t}, nil
+}

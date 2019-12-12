@@ -11,6 +11,13 @@ message Token {
     //google.protobuf.Timestamp expiration = 2;
 }
 
+// AccountService handles account login and session management
+service AccountService {
+    // Creates an account and generates a session token
+    rpc Create(CreateRequest) returns (TokenResponse);
+    // Login generates a session token
+    rpc Login(LoginRequest) returns (TokenResponse);
+}
 // TokenResponse contains a token for the client to use
 message TokenResponse {
     // Explicit API Version
@@ -38,13 +45,4 @@ message LoginRequest {
     // Login Credentials
     string username = 2;
     string password = 3;
-}
-
-
-// AccountService handles account login and session management
-service AccountService {
-    // Creates an account and generates a session token
-    rpc Create(CreateRequest) returns (TokenResponse);
-    // Login generates a session token
-    rpc Login(LoginRequest) returns (TokenResponse);
 }
