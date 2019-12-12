@@ -46,9 +46,12 @@ func RunServer() error {
 
 	db, err := gorm.Open("sqlite3", cfg.DatastoreDBFile)
 	if err != nil {
-		return fmt.Errorf("failed to open database: %v", err)
+		return fmt.Errorf("Failed to open database: %v", err)
 	}
 	defer db.Close()
+	if err := autoMigrate(db); err != nil {
+		return fmt.Errorf("Failed AutoMigration: %v", err)
+	}
 
 	hasher := password.NewPlaintextHasher()
 	session := auth.NewInMemorySession()
@@ -56,4 +59,12 @@ func RunServer() error {
 
 	v0.RegisterAccountServiceServer(s, v0API)
 	return s.Serve(lis)
+}
+
+func autoMigrate(db *gorm.DB) error {
+	var err error
+	if !db.HasTable(&account.User{}) {
+		err = db.AutoMigrate(&account.User{}).Error
+	}
+	return err
 }
