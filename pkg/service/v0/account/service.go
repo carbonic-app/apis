@@ -22,10 +22,6 @@ type accountServiceServer struct {
 	auth   common.Auth
 }
 
-type internal interface {
-	HashPassword(string) string
-}
-
 // NewAccountServiceServer creates an Account Service
 func NewAccountServiceServer(db *gorm.DB, h password.Hasher, a common.Auth) *accountServiceServer {
 	return &accountServiceServer{db: db, hasher: h, auth: a}
