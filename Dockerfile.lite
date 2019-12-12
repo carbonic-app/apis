@@ -1,0 +1,17 @@
+FROM golang:1.13-alpine
+
+WORKDIR /app
+RUN apk update \
+    && apk add --no-cache \
+    libc-dev \
+    git \
+    gcc
+ADD go.mod .
+ADD go.sum .
+RUN go mod download
+ADD . .
+
+RUN go build -v -o ./main ./pkg/cmd/server-lite
+CMD ["./main", "-grpc-port", "80", "-db-file", "./user.db"]
+
+EXPOSE 80
