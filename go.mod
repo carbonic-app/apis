@@ -1,4 +1,4 @@
-module github.com/carbonic/apis
+module github.com/carbonic-app/apis
 
 go 1.13
 

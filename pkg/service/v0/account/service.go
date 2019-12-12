@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	v0 "github.com/carbonic/apis/pkg/api/v0"
-	"github.com/carbonic/apis/pkg/service/v0/common"
+	v0 "github.com/carbonic-app/apis/pkg/api/v0"
+	"github.com/carbonic-app/apis/pkg/service/v0/common"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
