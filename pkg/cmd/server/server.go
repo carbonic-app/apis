@@ -46,7 +46,7 @@ func RunServer() error {
 	if cfg.GRPCPort <= 0 || cfg.GRPCPort >= 65565 {
 		return fmt.Errorf("invalid TCP port for gRPC server: '%d'", cfg.GRPCPort)
 	}
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", cfg.GRPCPort))
+	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", cfg.GRPCPort))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
