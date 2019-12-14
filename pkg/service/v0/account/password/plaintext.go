@@ -11,3 +11,7 @@ func NewPlaintextHasher() *PlaintextHasher {
 func (h *PlaintextHasher) HashPassword(p string) string {
 	return p
 }
+
+func (h *PlaintextHasher) Compare(hash string, p string) bool {
+	return hash == p
+}

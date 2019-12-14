@@ -72,8 +72,7 @@ func (s *accountServiceServer) Login(ctx context.Context, req *v0.LoginRequest) 
 		return nil, err
 	}
 
-	h := s.hasher.HashPassword(req.Password)
-	if h == user.PasswordHash {
+	if s.hasher.Compare(user.PasswordHash, req.Password) {
 		token = s.session.GenerateToken(user.ID)
 	} else {
 		return nil, status.Error(codes.PermissionDenied, "Invalid Password")
