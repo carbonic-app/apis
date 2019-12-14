@@ -44,7 +44,7 @@ func RunServer(l net.Listener) error {
 
 	s := grpc.NewServer()
 
-	hasher := password.NewPlaintextHasher()
+	hasher := password.NewCryptHasher(cfg.PasswordSecret)
 	session := auth.NewInMemorySession()
 	v0API := account.NewAccountServiceServer(db, hasher, session)
 
