@@ -9,9 +9,14 @@ RUN apk update \
 ADD go.mod .
 ADD go.sum .
 RUN go mod download
-ADD . .
+ADD pkg pkg
 
 RUN go build -v -o ./main ./pkg/cmd/server-lite
 CMD ["./main", "-grpc-port", "80", "-db-file", "./user.db"]
+
+ENV PORT=80 \
+    PASSWORD_SECRET="redacted" \
+    DB_MIGRATE="true" \
+    DB_FILE_PATH="./test.db"
 
 EXPOSE 80

@@ -1,10 +1,10 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	v0 "github.com/carbonic-app/apis/pkg/api/v0"
 	"github.com/carbonic-app/apis/pkg/service/v0/account"
@@ -17,48 +17,60 @@ import (
 
 // Config is configuration for Server
 type Config struct {
-	// gRPC server start parameters section
-	// gRPC is TCP port to listen by gRPC server
-	GRPCPort int
+	// PasswordSecret is the password hashing secret
+	PasswordSecret string
 
 	// DB Datastore parameters section
-	// DatastoreDBFile is the sqlite db file
-	DatastoreDBFile string
+	// DBFilePath is the sqlite db file path
+	DBFilePath string
+	// DBMigrate is if the db should be migrated on start
+	DBMigrate bool
 }
 
 // RunServer runs gRPC server and HTTP gateway
-func RunServer() error {
-	// get configuration
+func RunServer(l net.Listener) error {
 	var cfg Config
-	flag.IntVar(&cfg.GRPCPort, "grpc-port", 0, "gRPC port to bind")
-	flag.StringVar(&cfg.DatastoreDBFile, "db-file", "", "Database file path")
-	flag.Parse()
 
-	if cfg.GRPCPort <= 0 || cfg.GRPCPort >= 65565 {
-		return fmt.Errorf("invalid TCP port for gRPC server: '%d'", cfg.GRPCPort)
-	}
-	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", cfg.GRPCPort))
+	// Default: false, anything else: true
+	cfg.DBMigrate = os.Getenv("DB_MIGRATE") != ""
+	mustMapEnv(&cfg.PasswordSecret, "PASSWORD_SECRET")
+	mustMapEnv(&cfg.DBFilePath, "DB_FILE_PATH")
+
+	db, err := initDB(cfg)
 	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
-	}
-
-	s := grpc.NewServer()
-
-	db, err := gorm.Open("sqlite3", cfg.DatastoreDBFile)
-	if err != nil {
-		return fmt.Errorf("Failed to open database: %v", err)
+		log.Fatal("Failed to init DB:", err)
 	}
 	defer db.Close()
-	if err := autoMigrate(db); err != nil {
-		return fmt.Errorf("Failed AutoMigration: %v", err)
-	}
+
+	s := grpc.NewServer()
 
 	hasher := password.NewPlaintextHasher()
 	session := auth.NewInMemorySession()
 	v0API := account.NewAccountServiceServer(db, hasher, session)
 
 	v0.RegisterAccountServiceServer(s, v0API)
-	return s.Serve(lis)
+	return s.Serve(l)
+}
+
+func mustMapEnv(target *string, envKey string) {
+	v := os.Getenv(envKey)
+	if v == "" {
+		log.Panic("Environment variable not set:", envKey)
+	}
+	*target = v
+}
+
+func initDB(cfg Config) (*gorm.DB, error) {
+	db, err := gorm.Open("sqlite3", cfg.DBFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to open database: %v", err)
+	}
+	if cfg.DBMigrate {
+		if err := autoMigrate(db); err != nil {
+			return nil, fmt.Errorf("Failed AutoMigration: %v", err)
+		}
+	}
+	return db, nil
 }
 
 func autoMigrate(db *gorm.DB) error {
